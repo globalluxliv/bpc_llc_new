@@ -1,54 +1,102 @@
+import raw from "@/data/listings.json";
+
+// App-wide normalized type
 export type Listing = {
   id: string;
   slug: string;
-  status: "rent" | "sale";
-  featured?: boolean;
   title: string;
+  building: string;
+  address: string;
+  unit?: string;
+  type: "sale" | "rent" | "commercial_sale" | "commercial_lease";
   price: number;
   beds: number;
   baths: number;
   sqft?: number;
-  address: string;
-  images: { url: string; alt?: string }[];
+  cc?: number;
+  tax?: number;
+  img: string;
   description?: string;
-  amenities?: string[];
 };
 
-const SEED: Listing[] = [
-  {
-    id: "1",
-    slug: "225-rector-pl-12a",
-    status: "rent",
-    featured: true,
-    title: "225 Rector Pl #12A",
-    price: 5895,
-    beds: 2,
-    baths: 2,
-    sqft: 980,
-    address: "225 Rector Pl, New York, NY",
-    images: [{ url: "/placeholder.jpg", alt: "Living room" }],
-    description: "Bright corner 2BR with Hudson views.",
-  },
-  // add more…
-];
+// Match your JSON leniently (only what's guaranteed stays required)
+type RawListing = {
+  id: string;
+  address: string;
+  price: number | string;
 
-export async function getListings(
-  params: Partial<{
-    type: "rent" | "sale";
-    featured: boolean;
-    limit: number;
-  }> = {}
-) {
-  let res = [...SEED];
-  if (params.type)
-    res = res.filter(
-      (l) => l.status === (params.type === "rent" ? "rent" : "sale")
-    );
-  if (params.featured) res = res.filter((l) => l.featured);
-  if (params.limit) res = res.slice(0, params.limit);
-  return res;
+  bedrooms: number | string;
+  bathrooms: number | string;
+
+  // everything else optional / loose
+  slug?: string;
+  title?: string;
+  building?: string;
+  unit?: string;
+  type?: string;
+  sqft?: number | string;
+  cc?: number | string;
+  tax?: number | string;
+  imageUrl?: string;
+  img?: string;
+  description?: string;
+};
+
+// helpers
+const slugify = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+
+function normalize(r: RawListing): Listing {
+  const title =
+    r.title ?? [r.building, r.address, r.unit].filter(Boolean).join(", ");
+
+  const slug =
+    r.slug ?? slugify([r.building, r.address, r.unit].filter(Boolean).join(" "));
+
+  // accept either "img" or "imageUrl", fallback to placeholder
+  const img = r.img ?? r.imageUrl ?? "/images/placeholder.jpg";
+
+  // coerce and validate "type"
+  const allowed = ["sale", "rent", "commercial_sale", "commercial_lease"] as const;
+  const t = (r.type ?? "sale").toLowerCase();
+  const type = (allowed.includes(t as any) ? t : "sale") as Listing["type"];
+
+  // number coercions
+  const toNum = (v: unknown) =>
+    v === undefined || v === null || v === "" ? undefined : Number(v);
+
+  return {
+    id: String(r.id),
+    slug,
+    title,
+    building: r.building ?? "",
+    address: r.address,
+    unit: r.unit,
+    type,
+    price: Number(r.price),
+    beds: Number(r.bedrooms),
+    baths: Number(r.bathrooms),
+    sqft: toNum(r.sqft),
+    cc: toNum(r.cc),
+    tax: toNum(r.tax),
+    img,
+    description: r.description,
+  };
 }
 
+// ✅ now the cast is safe because RawListing is permissive
+const listings: Listing[] = (raw as RawListing[]).map(normalize);
+
+// APIs
+export async function getAllListings() {
+  return listings;
+}
+export async function getListingsByType(type: Listing["type"]) {
+  return listings.filter((l) => l.type === type);
+}
 export async function getListingBySlug(slug: string) {
-  return SEED.find((l) => l.slug === slug) ?? null;
+  return listings.find((l) => l.slug === slug);
+}
+export async function getListingById(id: string) {
+  return listings.find((l) => l.id === id);
 }
