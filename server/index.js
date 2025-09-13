@@ -1,58 +1,51 @@
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
 import listingRouter from "./routes/listing.route.js";
 import reviewRouter from "./routes/review.route.js";
-import cookieParser from "cookie-parser";
-import path from "path";
-import { fileURLToPath } from "url";
+
 dotenv.config();
 
 mongoose
   .connect(process.env.MONGO)
-  .then(() => {
-    console.log("Connected to MongoDB!");
-  })
-  .catch((err) => {
-    console.log(err);
-  });
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+  .then(() => console.log("Connected to MongoDB!"))
+  .catch((err) => console.log(err));
 
 const app = express();
 
+// Allow Next dev server (3000) to send/receive cookies
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(cookieParser());
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
 
+// API routes
 app.use("/api/user", userRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/listing", listingRouter);
 app.use("/api/review", reviewRouter);
 
-app.use(express.static(path.resolve(__dirname, "../client/dist")));
+// Health check
+app.get("/", (req, res) => res.send("API is running"));
 
-app.get("*", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "../client/dist/index.html"));
-});
-
-app.get("/", (req, res) => {
-  res.send("API is running");
-});
-
+// Error handler
 app.use((err, req, res, next) => {
   const statusCode = err.statusCode || 500;
   const message = err.message || "Internal Server Error";
-  return res.status(statusCode).json({
-    success: false,
-    statusCode,
-    message,
-  });
+  return res.status(statusCode).json({ success: false, statusCode, message });
 });
 
+const port = process.env.PORT || 8800; // <— runs on 8800
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});

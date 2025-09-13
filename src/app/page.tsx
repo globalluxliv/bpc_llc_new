@@ -6,9 +6,8 @@ import AboutSection from "@/components/AboutSection";
 import ListingCard from "@/components/ListingCard";
 import { apiFetch } from "@/lib/api";
 
-// Fetch listings from your Express API
 async function getListings(type: "sale" | "rent", limit = 6) {
-  return apiFetch(`/api/listing/get?type=${encodeURIComponent(type)}&limit=${limit}`);
+  return apiFetch(`/listing?type=${encodeURIComponent(type)}&limit=${limit}`);
 }
 
 export default async function Home() {
@@ -43,10 +42,7 @@ export default async function Home() {
         <SectionTitle>
           <div className="flex items-baseline justify-between">
             <span>New Rentals</span>
-            <Link
-              href="/apartments/rentals"
-              className="text-[var(--brand)] text-sm hover:underline"
-            >
+            <Link href="/apartments/rentals" className="text-[var(--brand)] text-sm hover:underline">
               Show more rentals
             </Link>
           </div>

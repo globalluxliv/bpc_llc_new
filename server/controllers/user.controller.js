@@ -7,10 +7,9 @@ const ADMIN_USER_ID = "664a1c34413c39f3d7fa02d4";
 const ADMIN_USER_ID2 = "66a6ac6b52f384512b70c176";
 
 export const test = (req, res) => {
-  res.json({
-    message: "Api route is working!",
-  });
+  res.json({ message: "Api route is working!" });
 };
+
 export const updateUser = async (req, res, next) => {
   if (req.user.id !== req.params.id)
     return next(errorHandler(401, "You can only update your own account!"));
@@ -36,6 +35,7 @@ export const updateUser = async (req, res, next) => {
     next(error);
   }
 };
+
 export const deleteUser = async (req, res, next) => {
   if (req.user.id !== req.params.id)
     return next(errorHandler(401, "You can only delete your own account!"));
@@ -60,11 +60,8 @@ export const getUserListings = async (req, res, next) => {
 export const getUser = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id);
-
     if (!user) return next(errorHandler(404, "User not found!"));
-
     const { password: pass, ...rest } = user._doc;
-
     res.status(200).json(rest);
   } catch (error) {
     next(error);
@@ -73,11 +70,20 @@ export const getUser = async (req, res, next) => {
 
 export const getUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select(
-      "username avatar position description"
-    );
-    res.status(200).json(users);
+    const users = await User.find().select("username avatar position description");
+  res.status(200).json(users);
   } catch (err) {
     next(err);
+  }
+};
+
+// NEW
+export const getMe = async (req, res, next) => {
+  try {
+    const me = await User.findById(req.user.id).select("-password");
+    if (!me) return next(errorHandler(404, "User not found"));
+    res.status(200).json(me);
+  } catch (e) {
+    next(e);
   }
 };
