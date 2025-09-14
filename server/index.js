@@ -1,3 +1,4 @@
+// server/index.js
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -18,10 +19,19 @@ mongoose
 
 const app = express();
 
-// Allow Next dev server (3000) to send/receive cookies
+/** CORS */
+const allowedOrigins = new Set([
+  "http://localhost:3000",
+  "https://bpc-web.onrender.com",
+]);
+
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: (origin, cb) => {
+      // allow SSR / health checks (no Origin), and allowed browser origins
+      if (!origin || allowedOrigins.has(origin)) return cb(null, true);
+      return cb(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
@@ -45,7 +55,7 @@ app.use((err, req, res, next) => {
   return res.status(statusCode).json({ success: false, statusCode, message });
 });
 
-const port = process.env.PORT || 8800; // <— runs on 8800
+const port = process.env.PORT || 8800;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
