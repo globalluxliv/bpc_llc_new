@@ -1,0 +1,48 @@
+# render.yaml
+services:
+  # Backend API (Express) in /server
+  - type: web
+    name: bpc-api
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    healthCheckPath: /
+    envVars:
+      - key: MONGO
+        sync: false          # paste in Render dashboard
+      - key: JWT_SECRET
+        sync: false          # paste in Render dashboard
+      - key: NODE_VERSION
+        value: "20"
+
+  # Frontend (Next.js) in repo root
+  - type: web
+    name: bpc-web
+    env: node
+    rootDir: .
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      # Leave these blank in git; set in Render after the first deploy
+      - key: API_BASE_URL
+        sync: false          # set to bpc-api URL
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false          # set to bpc-web URL
+
+      # Firebase public config
+      - key: NEXT_PUBLIC_FIREBASE_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_APP_ID
+        sync: false
+      - key: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+        sync: false
+
+      - key: NODE_VERSION
+        value: "20"
