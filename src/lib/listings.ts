@@ -1,3 +1,4 @@
+//lib/listings.ts
 import raw from "@/data/listings.json";
 
 // App-wide normalized type
