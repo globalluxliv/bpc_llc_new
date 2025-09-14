@@ -8,7 +8,7 @@ export default async function ListingPage({
 }: {
   params: ParamsPromise;
 }) {
-  const { slug } = await params;        // ✅ await the params
+  const { slug } = await params; // ✅ Next 15 params can be a Promise
   const listing = await getListingBySlug(slug);
 
   if (!listing) {
@@ -20,10 +20,17 @@ export default async function ListingPage({
       <div className="md:col-span-3 aspect-[4/3] bg-bgAlt rounded" />
       <div className="md:col-span-2">
         <h1 className="text-2xl font-semibold">{listing.title}</h1>
-        <div className="text-xl font-bold mt-1">${listing.price.toLocaleString()}</div>
-        <p className="text-muted mt-1">{listing.beds} bd • {listing.baths} ba</p>
+        <div className="text-xl font-bold mt-1">
+          ${listing.price.toLocaleString()}
+        </div>
+        <p className="text-muted mt-1">
+          {listing.beds} bd • {listing.baths} ba
+        </p>
         <p className="mt-4">{listing.description}</p>
-        <a href="/contact" className="mt-6 inline-block px-4 py-2 rounded bg-brand text-white">
+        <a
+          href="/contact"
+          className="mt-6 inline-block px-4 py-2 rounded bg-brand text-white"
+        >
           Request a showing
         </a>
       </div>

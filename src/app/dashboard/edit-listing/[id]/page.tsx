@@ -35,13 +35,14 @@ type ListingForm = {
 
 export default function EditListingPage() {
   const r = useRouter();
-  const params = useParams<{ id: string }>();   // ✅ get id from route
+  const params = useParams<{ id: string }>(); // ✅ read param on client
   const id = params.id;
 
   const [form, setForm] = useState<ListingForm | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // load existing listing
   useEffect(() => {
     if (!id) return;
     (async () => {
@@ -155,7 +156,174 @@ export default function EditListingPage() {
       />
 
       <form onSubmit={onSubmit} className="space-y-4">
-        {/* …rest of your form unchanged… */}
+        <input
+          className="w-full border rounded px-3 py-2"
+          placeholder="Name"
+          value={form.name}
+          onChange={(e) => update("name", e.target.value)}
+          required
+        />
+
+        <textarea
+          className="w-full border rounded px-3 py-2"
+          placeholder="Description"
+          rows={5}
+          value={form.description}
+          onChange={(e) => update("description", e.target.value)}
+          required
+        />
+
+        <input
+          className="w-full border rounded px-3 py-2"
+          placeholder="Address"
+          value={form.address}
+          onChange={(e) => update("address", e.target.value)}
+          required
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <select
+            className="border rounded px-3 py-2"
+            value={form.type}
+            onChange={(e) =>
+              update("type", e.target.value as ListingForm["type"])
+            }
+          >
+            <option value="rent">Rent</option>
+            <option value="sale">Sale</option>
+            <option value="commercial_sale">Commercial Sale</option>
+            <option value="commercial_lease">Commercial Lease</option>
+          </select>
+
+          <input
+            className="border rounded px-3 py-2"
+            placeholder="Map URL"
+            value={form.mapUrl ?? ""}
+            onChange={(e) => update("mapUrl", e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <input
+            type="number"
+            className="border rounded px-3 py-2"
+            placeholder="Beds"
+            value={form.bedrooms ?? 0}
+            onChange={(e) => update("bedrooms", +e.target.value)}
+          />
+          <input
+            type="number"
+            className="border rounded px-3 py-2"
+            placeholder="Baths"
+            value={form.bathrooms ?? 0}
+            onChange={(e) => update("bathrooms", +e.target.value)}
+          />
+          <input
+            type="number"
+            className="border rounded px-3 py-2"
+            placeholder="SqFt"
+            value={form.sqft ?? 0}
+            onChange={(e) => update("sqft", +e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <input
+            type="number"
+            className="border rounded px-3 py-2"
+            placeholder="Price"
+            value={form.regularPrice}
+            onChange={(e) => update("regularPrice", +e.target.value)}
+            required
+          />
+          <input
+            type="number"
+            className="border rounded px-3 py-2"
+            placeholder="Discount price"
+            value={form.discountPrice ?? 0}
+            onChange={(e) => update("discountPrice", +e.target.value)}
+          />
+          <input
+            type="number"
+            className="border rounded px-3 py-2"
+            placeholder="CC + Tax"
+            value={form.cc_tax ?? 0}
+            onChange={(e) => update("cc_tax", +e.target.value)}
+          />
+        </div>
+
+        <input
+          className="w-full border rounded px-3 py-2"
+          placeholder="YouTube URL"
+          value={form.youtubeUrl ?? ""}
+          onChange={(e) => update("youtubeUrl", e.target.value)}
+        />
+
+        {/* flags */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+          {([
+            ["offer", "Offer"],
+            ["parking", "Parking"],
+            ["furnished", "Furnished"],
+            ["pet", "Pet"],
+            ["gym", "Gym"],
+            ["doorMan", "Doorman"],
+            ["sold", "Sold"],
+            ["rented", "Rented"],
+            ["underContract", "Under Contract"],
+            ["tempOff", "Temporary Off"],
+          ] as const).map(([key, label]) => (
+            <label key={key} className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={(form as any)[key] || false}
+                onChange={(e) => update(key as any, e.target.checked)}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+
+        {/* image urls */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold">Images (paste URLs)</span>
+            <button
+              type="button"
+              className="text-[var(--brand)] underline"
+              onClick={addImage}
+            >
+              + Add image
+            </button>
+          </div>
+
+          {form.imageUrls.map((u, i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                className="flex-1 border rounded px-3 py-2"
+                placeholder="https://…"
+                value={u}
+                onChange={(e) => updateImage(i, e.target.value)}
+              />
+              <button
+                type="button"
+                className="text-red-600"
+                onClick={() => removeImage(i)}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {err && <p className="text-red-600 text-sm">{err}</p>}
+
+        <button
+          disabled={busy}
+          className="bg-[var(--brand)] text-white rounded px-4 py-2"
+        >
+          {busy ? "Saving…" : "Save changes"}
+        </button>
       </form>
     </main>
   );
