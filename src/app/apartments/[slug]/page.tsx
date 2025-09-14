@@ -1,13 +1,20 @@
 // src/app/apartments/[slug]/page.tsx
 import { getListingBySlug } from "@/lib/listings";
 
-type Params = { slug: string };
+type ParamsPromise = Promise<{ slug: string }>;
 
-const ListingPage = async ({ params }: { params: Params }) => {
-  const listing = await getListingBySlug(params.slug);
+export default async function ListingPage({
+  params,
+}: {
+  params: ParamsPromise;
+}) {
+  const { slug } = await params;        // ✅ await the params
+  const listing = await getListingBySlug(slug);
+
   if (!listing) {
     return <div className="mx-auto max-w-6xl px-4 py-12">Not found</div>;
   }
+
   return (
     <article className="mx-auto max-w-5xl px-4 py-8 grid gap-8 md:grid-cols-5">
       <div className="md:col-span-3 aspect-[4/3] bg-bgAlt rounded" />
@@ -22,6 +29,4 @@ const ListingPage = async ({ params }: { params: Params }) => {
       </div>
     </article>
   );
-};
-
-export default ListingPage;
+}
