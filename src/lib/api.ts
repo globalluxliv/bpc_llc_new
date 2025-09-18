@@ -1,33 +1,32 @@
 // src/lib/api.ts
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8800/api";
+import { absUrl } from "./abs-url";
 
-function toApiUrl(path: string) {
-  if (/^https?:\/\//i.test(path)) return path;
-  const base = API_BASE.replace(/\/+$/, "");
+function toApiPath(path: string) {
   const p = path.startsWith("/") ? path : `/${path}`;
-  return `${base}${p}`;
+  return p.startsWith("/api/") ? p : `/api${p}`;
 }
 
-export async function apiFetch<T = any>(
-  path: string,
-  init: RequestInit = {}
-): Promise<T> {
-  const url = toApiUrl(path);
+export async function apiFetch<T = any>(path: string, init: RequestInit = {}): Promise<T> {
+  const url = absUrl(toApiPath(path));
+
+  const headers =
+    init.body || (init.method && init.method !== "GET")
+      ? { "Content-Type": "application/json", ...(init.headers || {}) }
+      : init.headers || {};
+
   const res = await fetch(url, {
     cache: "no-store",
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(init.headers || {}),
-    },
     ...init,
-  });
+    headers,
+  } as RequestInit);
+
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`API ${res.status} ${res.statusText}: ${text}`);
+    const body = await res.text().catch(() => "");
+    throw new Error(`apiFetch failed ${res.status} ${res.statusText}\nURL: ${url}\nBody: ${body.slice(0, 500)}`);
   }
+
   return res.json();
 }
 
-export { toApiUrl as apiUrl };
+export { toApiPath };
