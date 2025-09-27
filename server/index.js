@@ -23,7 +23,10 @@ const app = express();
 const allowedOrigins = new Set([
   "http://localhost:3000",
   "https://bpc-web.onrender.com",
+  "https://bpcresidential.com",
+  "https://www.bpcresidential.com",
 ]);
+
 
 app.use(
   cors({
