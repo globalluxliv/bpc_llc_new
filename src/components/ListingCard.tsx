@@ -9,13 +9,12 @@ export default function ListingCard({ listing }: { listing: any }) {
     "/images/default.jpg";
 
   const priceNumber =
-    Number(
-      listing.offer ? listing.discountPrice ?? listing.regularPrice : listing.regularPrice ?? listing.price
-    ) || 0;
+  Number(
+    listing.offer ? listing.discountPrice ?? listing.regularPrice : listing.regularPrice ?? listing.price
+  ) || 0;
 
-  const price = priceNumber
-    ? `$${priceNumber.toLocaleString()}${listing.type === "rent" ? " / month" : ""}`
-    : listing.price || "";
+  const price = `$${priceNumber.toLocaleString()}${listing.type === "rent" ? " / month" : ""}`;
+
 
   return (
     <article className="bg-white shadow rounded-lg overflow-hidden">
