@@ -1,5 +1,17 @@
+// src/components/ListingCard.tsx
 import Image from "next/image";
 import Link from "next/link";
+
+function formatUSD(n: unknown) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "—";
+  return `$${x.toLocaleString()}`;
+}
+
+function nameAsPrice(name: unknown): number | null {
+  if (typeof name !== "string") return null;
+  return /^\d+(\.\d+)?$/.test(name) ? Number(name) : null;
+}
 
 export default function ListingCard({ listing }: { listing: any }) {
   const id = listing._id || listing.id;
@@ -8,12 +20,14 @@ export default function ListingCard({ listing }: { listing: any }) {
     listing.imageUrl ||
     "/images/default.jpg";
 
-  const priceNumber =
-  Number(
-    listing.offer ? listing.discountPrice ?? listing.regularPrice : listing.regularPrice ?? listing.price
-  ) || 0;
+  // Price calculation (supports offer/discount, regularPrice, legacy price)
+const priceNumber =
+  listing.offer && Number.isFinite(Number(listing.discountPrice))
+    ? Number(listing.discountPrice)
+    : Number(listing.regularPrice ?? listing.price ?? 0);
 
-  const price = `$${priceNumber.toLocaleString()}${listing.type === "rent" ? " / month" : ""}`;
+const priceStr = `${priceNumber.toLocaleString()}`;
+
 
 
   return (
@@ -31,7 +45,9 @@ export default function ListingCard({ listing }: { listing: any }) {
       </Link>
 
       <div className="p-4">
-        {price && <p className="text-xl font-bold">{price}</p>}
+        <p className="text-xl font-bold">
+          {priceStr}{listing.type === "rent" ? " / month" : ""}
+        </p>
         <p className="text-gray-700">{listing.address}</p>
 
         <p className="text-sm text-gray-600">
@@ -40,9 +56,11 @@ export default function ListingCard({ listing }: { listing: any }) {
           {listing.sqft ? <> / SqFt: {listing.sqft}</> : null}
         </p>
 
-        {(listing.cc || listing.tax) && (
+        {(listing.cc_tax || listing.cc || listing.tax) && (
           <p className="text-sm text-gray-600">
-            CC: {listing.cc ?? "-"} / Tax: {listing.tax ?? "-"}
+            CC + Tax: {Number.isFinite(Number(listing.cc_tax ?? listing.cc ?? listing.tax))
+              ? Number(listing.cc_tax ?? listing.cc ?? listing.tax).toLocaleString()
+              : "-"}
           </p>
         )}
 

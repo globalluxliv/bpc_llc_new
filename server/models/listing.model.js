@@ -1,3 +1,4 @@
+// server/models/listing.model.js
 import mongoose from 'mongoose';
 
 const listingSchema = new mongoose.Schema(
@@ -18,7 +19,7 @@ const listingSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-     cc_tax: {
+    cc_tax: {
       type: Number,
       required: false,
     },
@@ -98,16 +99,19 @@ const listingSchema = new mongoose.Schema(
       type: Boolean,
       required: false,
     },
-    date:{
+    date: {
       type: String,
       required: false,
     },
     agent: {
-    name: String,
-    email: String,
-    phone: String,
-    imageUrl: String,
-  },
+      name: String,
+      email: String,
+      phone: String,
+      imageUrl: String,
+    },
+
+    // ⬇️ NEW: archive flag (hide from public lists without deleting)
+    archived: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

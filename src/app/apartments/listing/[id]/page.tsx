@@ -1,7 +1,7 @@
 // src/app/apartments/listing/[id]/page.tsx
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import ListingOwnerActions from "@/components/ListingOwnerActions"; // ⬅️ NEW
+import ListingOwnerActions from "@/components/ListingOwnerActions";
 
 function absUrl(path: string) {
   const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -10,12 +10,28 @@ function absUrl(path: string) {
 
 type ParamsPromise = Promise<{ id: string }>;
 
+function formatUSD(n: unknown) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(x);
+}
+
+// Treat numeric "name" as legacy price
+function nameAsPrice(name: unknown): number | null {
+  if (typeof name !== "string") return null;
+  return /^\d+(\.\d+)?$/.test(name) ? Number(name) : null;
+}
+
 export default async function ListingDetail({
   params,
 }: {
   params: ParamsPromise;
 }) {
-  const { id } = await params; // ✅ your pattern
+  const { id } = await params;
 
   const res = await fetch(absUrl(`/api/listing/get/${id}`), {
     cache: "no-store",
@@ -26,17 +42,18 @@ export default async function ListingDetail({
   const l = await res.json();
 
   const cover = l.imageUrls?.[0] || "/images/default.jpg";
-  const basePrice =
-    Number(l.offer ? l.discountPrice ?? l.regularPrice : l.regularPrice ?? l.price) || 0;
 
-  const price =
-    basePrice > 0
-      ? new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-          maximumFractionDigits: 0,
-        }).format(basePrice)
-      : "";
+  // Prefer regularPrice; then legacy price; then numeric name (legacy docs)
+  const basePrice =
+    l.regularPrice ?? l.price ?? nameAsPrice(l.name);
+
+  // If "offer" is true and discountPrice exists, show that; otherwise base
+  const rawPrice =
+    l.offer && Number.isFinite(Number(l.discountPrice))
+      ? Number(l.discountPrice)
+      : basePrice;
+
+  const priceStr = formatUSD(rawPrice);
 
   return (
     <main className="bg-[var(--bg-alt)]">
@@ -55,7 +72,7 @@ export default async function ListingDetail({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-3xl font-extrabold">
-                {price} {l.type === "rent" ? "/ month" : ""}
+                {priceStr} {l.type === "rent" ? "/ month" : ""}
               </h1>
               <div className="mt-1 text-lg font-semibold">
                 {l.building ? `${l.building} — ` : null}
@@ -69,17 +86,16 @@ export default async function ListingDetail({
                   <> / <span className="font-bold">SqFt:</span> {l.sqft}</>
                 ) : null}
               </div>
-              {(l.cc || l.tax) && (
+              {(l.cc_tax || l.cc || l.tax) && (
                 <div className="text-[15px]">
-                  <span className="font-bold">CC:</span>{" "}
-                  {l.cc ? Number(l.cc).toLocaleString() : "-"} /{" "}
-                  <span className="font-bold">Tax:</span>{" "}
-                  {l.tax ? Number(l.tax).toLocaleString() : "-"}
+                  <span className="font-bold">CC + Tax:</span>{" "}
+                  {Number.isFinite(Number(l.cc_tax ?? l.cc ?? l.tax))
+                    ? Number(l.cc_tax ?? l.cc ?? l.tax).toLocaleString()
+                    : "-"}
                 </div>
               )}
             </div>
 
-            {/* ⬇️ NEW: owner actions (Edit/Delete). Shows unconditionally; you can add an owner check later */}
             <ListingOwnerActions id={id} />
           </div>
 

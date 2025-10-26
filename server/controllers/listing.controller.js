@@ -1,3 +1,4 @@
+// server/controllers/listing.controller.js
 import Listing from "../models/listing.model.js";
 import mongoose from "mongoose";
 import { errorHandler } from "../utils/error.js";
@@ -43,7 +44,7 @@ export const getListing = async (req, res, next) => {
   }
 };
 
-// READ MANY
+// READ MANY (public/search)
 export const getListings = async (req, res, next) => {
   try {
     const {
@@ -56,9 +57,13 @@ export const getListings = async (req, res, next) => {
       limit = 20,
       page = 1,
       sort = "-createdAt",
+      includeArchived, // ?includeArchived=1 to show archived (admin views)
     } = req.query;
 
     const filter = {};
+    // IMPORTANT: include docs where archived is false OR missing
+    if (!includeArchived) filter.archived = { $ne: true };
+
     if (type) filter.type = type;
     if (bedrooms) filter.bedrooms = { $gte: Number(bedrooms) };
     if (bathrooms) filter.bathrooms = { $gte: Number(bathrooms) };
@@ -86,17 +91,21 @@ export const getListings = async (req, res, next) => {
   }
 };
 
-// READ MINE
+// READ MINE (dashboard)
 export const getMyListings = async (req, res, next) => {
   try {
-    const docs = await Listing.find({ userRef: req.user.id }).sort("-createdAt");
+    const includeArchived = req.query.includeArchived;
+    const base = { userRef: req.user.id };
+    // IMPORTANT: show only non-archived unless includeArchived is truthy
+    const query = includeArchived ? base : { ...base, archived: { $ne: true } };
+    const docs = await Listing.find(query).sort("-createdAt");
     res.status(200).json(docs);
   } catch (e) {
     next(e);
   }
 };
 
-// ✅ UPDATE
+// UPDATE
 export const updateListing = async (req, res, next) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id))
@@ -112,14 +121,18 @@ export const updateListing = async (req, res, next) => {
     // prevent hijacking owner unless admin
     if (!ADMIN_IDS.has(req.user.id)) delete updates.userRef;
 
-    const updated = await Listing.findByIdAndUpdate(doc._id, { $set: updates }, { new: true });
+    const updated = await Listing.findByIdAndUpdate(
+      doc._id,
+      { $set: updates },
+      { new: true }
+    );
     res.status(200).json(updated);
   } catch (e) {
     next(e);
   }
 };
 
-// ✅ DELETE
+// DELETE
 export const deleteListing = async (req, res, next) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id))
@@ -133,6 +146,44 @@ export const deleteListing = async (req, res, next) => {
 
     await Listing.deleteOne({ _id: doc._id });
     res.status(200).json({ success: true, id: String(doc._id) });
+  } catch (e) {
+    next(e);
+  }
+};
+
+// ARCHIVE (hide instead of delete)
+export const archiveListing = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id))
+      return next(errorHandler(400, "Invalid listing id"));
+
+    const doc = await Listing.findById(req.params.id);
+    if (!doc) return next(errorHandler(404, "Listing not found"));
+    if (!isOwnerOrAdmin(doc, req.user.id))
+      return next(errorHandler(401, "Not authorized"));
+
+    doc.archived = true;
+    await doc.save();
+    res.status(200).json({ success: true, id: String(doc._id), archived: true });
+  } catch (e) {
+    next(e);
+  }
+};
+
+// UNARCHIVE
+export const unarchiveListing = async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id))
+      return next(errorHandler(400, "Invalid listing id"));
+
+    const doc = await Listing.findById(req.params.id);
+    if (!doc) return next(errorHandler(404, "Listing not found"));
+    if (!isOwnerOrAdmin(doc, req.user.id))
+      return next(errorHandler(401, "Not authorized"));
+
+    doc.archived = false;
+    await doc.save();
+    res.status(200).json({ success: true, id: String(doc._id), archived: false });
   } catch (e) {
     next(e);
   }

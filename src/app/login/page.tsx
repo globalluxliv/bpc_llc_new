@@ -1,16 +1,33 @@
 // src/app/login/page.tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { getCurrentUser } from "@/lib/auth";
 
 export default function LoginPage() {
   const r = useRouter();
+  const sp = useSearchParams();
+  // if no ?next=... is present, fall back to your dashboard (or "/" if you prefer)
+  const next = sp?.get("next") || "/dashboard/archived";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // If already signed in, bounce straight to `next`
+  useEffect(() => {
+    (async () => {
+      try {
+        const me = await getCurrentUser();
+        if (me) r.replace(next);
+      } catch {
+        // ignore; user not signed in
+      }
+    })();
+  }, [next, r]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,7 +38,8 @@ export default function LoginPage() {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
-      r.push("/");
+      // ⬇️ go to the page that requested login
+      r.replace(next);
     } catch (e: any) {
       setErr(e.message || "Login failed");
     } finally {
@@ -57,7 +75,7 @@ export default function LoginPage() {
 
       <p className="text-sm mt-4">
         Need an account?{" "}
-        <a href="/register" className="text-[var(--brand)] underline">
+        <a href={`/register?next=${encodeURIComponent(next)}`} className="text-[var(--brand)] underline">
           Register
         </a>
       </p>
